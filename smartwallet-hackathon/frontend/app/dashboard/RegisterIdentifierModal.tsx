@@ -16,7 +16,8 @@ import {
   ArrowRight,
   Zap,
   Shield,
-  Loader2
+  Loader2,
+  Copy
 } from 'lucide-react'
 import { useUserIdentifiers, useSmartWallet } from '@/hooks/useSmartWallet'
 import { isValidPhoneNumber, normalizePhoneE164 } from '@/lib/utils'
@@ -52,6 +53,7 @@ export function RegisterIdentifierModal({ onClose, onSuccess }: RegisterIdentifi
   const [step, setStep] = useState<'form' | 'verify' | 'processing' | 'success'>('form')
   const [verificationCode, setVerificationCode] = useState('')
   const [verificationId, setVerificationId] = useState('')
+  const [mockCode, setMockCode] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(false)
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null)
   const [isPhoneVerified, setIsPhoneVerified] = useState(false)
@@ -131,6 +133,12 @@ export function RegisterIdentifierModal({ onClose, onSuccess }: RegisterIdentifi
           return
         }
         setVerificationId(res.verificationId || '')
+        if (res.mockCode) {
+          setMockCode(res.mockCode)
+        }
+        if (res.mockCode) {
+          toast.success(`Mock code: ${res.mockCode}`)
+        }
         setStep('verify')
         toast.success('Verification code sent!')
       } catch (error) {
@@ -161,6 +169,7 @@ export function RegisterIdentifierModal({ onClose, onSuccess }: RegisterIdentifi
         return
       }
       setIsPhoneVerified(true)
+      setMockCode(null)
       await processRegistration(watchedValues)
     } catch (error) {
       toast.error('Invalid verification code')
@@ -212,6 +221,12 @@ export function RegisterIdentifierModal({ onClose, onSuccess }: RegisterIdentifi
         return
       }
       setVerificationId(res.verificationId || '')
+      if (res.mockCode) {
+        setMockCode(res.mockCode)
+      }
+      if (res.mockCode) {
+        toast.success(`Mock code: ${res.mockCode}`)
+      }
       toast.success('Verification code sent!')
     } catch (error) {
       toast.error('Failed to resend code')
@@ -445,6 +460,22 @@ export function RegisterIdentifierModal({ onClose, onSuccess }: RegisterIdentifi
                     <span className="font-medium text-white">{watchedValues.identifier}</span>
                   </p>
                 </div>
+
+                {mockCode && (
+                  <div className="p-3 bg-dark-700/50 border border-dark-600 rounded-lg flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-gray-400">Mock code (for testing):</p>
+                      <p className="text-lg font-mono text-white tracking-widest">{mockCode}</p>
+                    </div>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(mockCode); toast.success('Code copied') }}
+                      className="px-3 py-2 bg-dark-600 hover:bg-dark-500 border border-dark-500 rounded-md text-white flex items-center space-x-2"
+                    >
+                      <Copy className="w-4 h-4" />
+                      <span>Copy</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Verification Code Input */}
                 <div>

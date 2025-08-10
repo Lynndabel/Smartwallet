@@ -16,9 +16,10 @@ import { formatEther } from 'viem'
 
 interface WalletOverviewProps {
   className?: string
+  onDeposit?: () => void
 }
 
-export function WalletOverview({ className = '' }: WalletOverviewProps) {
+export function WalletOverview({ className = '', onDeposit }: WalletOverviewProps) {
   const { address, isConnected } = useAccount()
   const { data: balance } = useBalance({
     address: address,

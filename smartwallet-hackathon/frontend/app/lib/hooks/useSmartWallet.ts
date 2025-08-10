@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAccount } from 'wagmi'
 import { Address, formatEther, parseEther } from 'viem'
-import { smartWalletService } from '@/lib/contracts'
+import { smartWalletService } from '@/lib/contracts/contracts'
 import toast from 'react-hot-toast'
 
 // Types

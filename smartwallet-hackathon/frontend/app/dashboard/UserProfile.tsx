@@ -14,46 +14,19 @@ import {
   CheckCircle,
   AlertCircle,
   Shield,
-  Settings
+  Settings,
+  Loader2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useUserIdentifiers } from '@/hooks/useSmartWallet'
 
 interface UserProfileProps {
   onRegister: () => void
 }
 
-interface UserIdentifier {
-  id: string
-  identifier: string
-  type: 'phone' | 'username'
-  verified: boolean
-  registeredAt: Date
-  isDefault: boolean
-}
-
-// Mock user identifiers
-const mockIdentifiers: UserIdentifier[] = [
-  {
-    id: '1',
-    identifier: '+1234567890',
-    type: 'phone',
-    verified: true,
-    registeredAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-    isDefault: true
-  },
-  {
-    id: '2',
-    identifier: 'alice_crypto',
-    type: 'username',
-    verified: true,
-    registeredAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-    isDefault: false
-  }
-]
-
 export function UserProfile({ onRegister }: UserProfileProps) {
   const { address } = useAccount()
-  const [identifiers] = useState<UserIdentifier[]>(mockIdentifiers)
+  const { identifiers, loading } = useUserIdentifiers()
   const [showAllIdentifiers, setShowAllIdentifiers] = useState(false)
 
   const copyToClipboard = (text: string, label: string) => {
@@ -116,7 +89,9 @@ export function UserProfile({ onRegister }: UserProfileProps) {
           </div>
           <div>
             <h4 className="text-xl font-bold text-white">Smart Wallet User</h4>
-            <p className="text-gray-400">Member since January 2024</p>
+            {identifiers.length > 0 && (
+              <p className="text-gray-400">Identifiers linked: {identifiers.length}</p>
+            )}
           </div>
         </div>
 
@@ -164,7 +139,12 @@ export function UserProfile({ onRegister }: UserProfileProps) {
           </motion.button>
         </div>
 
-        {identifiers.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-8 border-2 border-dashed border-dark-600 rounded-xl">
+            <Loader2 className="w-6 h-6 text-primary-400 animate-spin mx-auto mb-3" />
+            <p className="text-gray-400">Loading identifiers…</p>
+          </div>
+        ) : identifiers.length === 0 ? (
           <div className="text-center py-8 border-2 border-dashed border-dark-600 rounded-xl">
             <User className="w-12 h-12 text-gray-600 mx-auto mb-4" />
             <h5 className="text-lg font-medium text-gray-400 mb-2">No identifiers yet</h5>
@@ -292,8 +272,12 @@ export function UserProfile({ onRegister }: UserProfileProps) {
             <CheckCircle className="w-4 h-4 text-accent-400" />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Phone Verified</span>
-            <CheckCircle className="w-4 h-4 text-accent-400" />
+            <span className="text-sm text-gray-400">Phone Linked</span>
+            {identifiers.some(i => i.type === 'phone') ? (
+              <CheckCircle className="w-4 h-4 text-accent-400" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-yellow-400" />
+            )}
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Email Verified</span>

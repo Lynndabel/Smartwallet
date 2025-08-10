@@ -9,6 +9,7 @@ export interface PhoneVerificationResult {
   success: boolean;
   verificationId?: string;
   error?: string;
+  mockCode?: string;
 }
 
 export interface VerifyCodeResult {
@@ -51,7 +52,7 @@ export class PhoneVerificationService {
       if (!res.ok || !data?.success) {
         return { success: false, error: data?.error || 'Failed to send verification code' }
       }
-      return { success: true, verificationId: data.sid }
+      return { success: true, verificationId: data.sid, mockCode: data.mockCode }
     } catch (error: any) {
       return { success: false, error: error?.message || 'Failed to send verification code' }
     }
