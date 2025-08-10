@@ -1,0 +1,15 @@
+{
+  "network": "morph-testnet",
+  "chainId": 2810,
+  "deployedAt": 1754203884,
+  "deployer": "0x6b25A064476C944Ba4Fd54a32Fc30E57Eb8D2c49",
+  "contracts": {
+    "userRegistry": "0x9b3e41C3B672E36f86b37C3924aB07d7C53269B0",
+    "walletFactory": "0x0488d56244A23c3235f1daB90C364Fb92b4A73E4",
+    "smartWalletImplementation": "0x94aAEa88481bD6161178f397317B8047f9aDeE70",
+    "sampleSmartWallet": "0xB352451448dC97b595EC7Adc77472d6Bb7D96f9a",
+    "paymentProcessor": "0x353dB8655079D32AE77E1D7418312b5b33CF267a"
+  },
+  "deploymentFee": "1000000000000000",
+  "reservedUsernames": ["admin","root","system","wallet","support","help","api","bot"]
+}
