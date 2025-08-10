@@ -26,6 +26,9 @@ contract UserRegistry is Ownable, ReentrancyGuard {
     mapping(string => UserInfo) public identifierToUser;
     mapping(address => string[]) public walletToIdentifiers;
     mapping(string => bool) public reservedUsernames;
+    // Per-wallet type flags to restrict one phone and one username per wallet
+    mapping(address => bool) public walletHasPhone;
+    mapping(address => bool) public walletHasUsername;
 
     // Constants
     uint256 public constant MAX_IDENTIFIERS_PER_WALLET = 5;
@@ -70,11 +73,13 @@ contract UserRegistry is Ownable, ReentrancyGuard {
         // Validate phone number format (basic validation)
         if (keccak256(bytes(identifierType)) == keccak256(bytes("phone"))) {
             require(_isValidPhoneNumber(identifier), "Invalid phone number format");
+            require(!walletHasPhone[wallet], "Phone already linked");
         }
 
         // Validate username format
         if (keccak256(bytes(identifierType)) == keccak256(bytes("username"))) {
             require(_isValidUsername(identifier), "Invalid username format");
+            require(!walletHasUsername[wallet], "Username already linked");
         }
 
         // Register user
@@ -86,6 +91,11 @@ contract UserRegistry is Ownable, ReentrancyGuard {
         });
 
         walletToIdentifiers[wallet].push(identifier);
+        if (keccak256(bytes(identifierType)) == keccak256(bytes("phone"))) {
+            walletHasPhone[wallet] = true;
+        } else {
+            walletHasUsername[wallet] = true;
+        }
 
         emit UserRegistered(identifier, wallet, identifierType);
     }
@@ -108,6 +118,15 @@ contract UserRegistry is Ownable, ReentrancyGuard {
         _removeIdentifierFromWallet(oldWallet, identifier);
         walletToIdentifiers[newWallet].push(identifier);
 
+        // Update type flags for both wallets
+        if (keccak256(bytes(user.identifierType)) == keccak256(bytes("phone"))) {
+            walletHasPhone[oldWallet] = false;
+            walletHasPhone[newWallet] = true;
+        } else {
+            walletHasUsername[oldWallet] = false;
+            walletHasUsername[newWallet] = true;
+        }
+
         emit UserUpdated(identifier, oldWallet, newWallet);
     }
 
@@ -124,6 +143,13 @@ contract UserRegistry is Ownable, ReentrancyGuard {
         user.isActive = false;
 
         _removeIdentifierFromWallet(wallet, identifier);
+
+        // Clear type flag
+        if (keccak256(bytes(user.identifierType)) == keccak256(bytes("phone"))) {
+            walletHasPhone[wallet] = false;
+        } else if (keccak256(bytes(user.identifierType)) == keccak256(bytes("username"))) {
+            walletHasUsername[wallet] = false;
+        }
 
         emit IdentifierRemoved(identifier, wallet);
     }

@@ -167,6 +167,8 @@ export function CTASection() {
               <span>Community Driven</span>
             </div>
           </motion.div>
+
+          
         </div>
       </div>
 

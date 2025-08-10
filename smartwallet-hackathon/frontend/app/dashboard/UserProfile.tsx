@@ -28,6 +28,7 @@ export function UserProfile({ onRegister }: UserProfileProps) {
   const { address } = useAccount()
   const { smartWalletAddress, hasWallet } = useSmartWallet()
   const { identifiers, loading } = useUserIdentifiers()
+  const [selectedShareId, setSelectedShareId] = useState<string | null>(null)
   const [showAllIdentifiers, setShowAllIdentifiers] = useState(false)
 
   const copyToClipboard = (text: string, label: string) => {
@@ -48,6 +49,19 @@ export function UserProfile({ onRegister }: UserProfileProps) {
   const setDefaultIdentifier = (id: string) => {
     // TODO: Implement set default functionality
     toast.success('Default identifier updated!')
+  }
+
+  const copyPayLink = (identifier: string) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const link = `${origin}/pay?id=${encodeURIComponent(identifier)}`
+    navigator.clipboard.writeText(link)
+    toast.success('Pay link copied to clipboard!')
+  }
+
+  // Initialize default share identifier
+  if (selectedShareId === null && identifiers.length > 0) {
+    const def = identifiers.find(i => i.isDefault) || identifiers[0]
+    setSelectedShareId(def.id)
   }
 
   return (
@@ -257,6 +271,15 @@ export function UserProfile({ onRegister }: UserProfileProps) {
                     >
                       <Copy className="w-4 h-4 text-gray-400 hover:text-white" />
                     </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => copyPayLink(identifier.identifier)}
+                      className="p-2 hover:bg-dark-600/50 rounded-lg transition-colors"
+                      title="Copy pay link"
+                    >
+                      <ExternalLink className="w-4 h-4 text-gray-400 hover:text-white" />
+                    </motion.button>
                     
                     {!identifier.isDefault && (
                       <motion.button
@@ -295,6 +318,51 @@ export function UserProfile({ onRegister }: UserProfileProps) {
                 }
               </motion.button>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Share Pay Link */}
+      <div className="bg-dark-700/30 rounded-lg p-4 border border-dark-600/50 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h5 className="font-semibold text-white">Share Pay Link</h5>
+        </div>
+        {identifiers.length === 0 ? (
+          <p className="text-sm text-gray-400">
+            Add a phone number or username to generate your pay link.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <label htmlFor="share-id" className="text-sm text-gray-400">Identifier</label>
+              <select
+                id="share-id"
+                value={selectedShareId || ''}
+                onChange={(e) => setSelectedShareId(e.target.value)}
+                className="bg-dark-800/50 border border-dark-600 rounded px-2 py-1 text-sm text-white"
+                title="Select identifier to share"
+              >
+                {identifiers.map(idf => (
+                  <option key={idf.id} value={idf.id}>
+                    {idf.identifier}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/pay?id=${encodeURIComponent((identifiers.find(i => i.id === selectedShareId) || identifiers[0]).identifier)}`}
+                className="flex-1 bg-dark-800/50 border border-dark-600 rounded-lg px-3 py-2 text-xs text-white font-mono"
+              />
+              <button
+                onClick={() => copyPayLink((identifiers.find(i => i.id === selectedShareId) || identifiers[0]).identifier)}
+                className="px-3 py-2 bg-dark-700 hover:bg-dark-600 border border-dark-600 rounded text-white text-sm"
+                title="Copy pay link"
+              >
+                Copy
+              </button>
+            </div>
           </div>
         )}
       </div>
