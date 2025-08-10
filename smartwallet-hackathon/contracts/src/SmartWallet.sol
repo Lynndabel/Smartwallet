@@ -30,6 +30,9 @@ contract SmartWallet is ReentrancyGuard {
     // Wallet balances
     mapping(address => uint256) public balances;
     mapping(address => mapping(address => uint256)) public tokenBalances; // user => token => balance
+    // Optional per-transfer fee in basis points (e.g., 100 = 1%) and recipient
+    uint256 public feeBps;
+    address public feeRecipient;
     
     // Payment history
     struct Payment {
@@ -58,6 +61,7 @@ contract SmartWallet is ReentrancyGuard {
     constructor(address _userRegistry) {
         owner = msg.sender;
         userRegistry = UserRegistry(_userRegistry);
+        feeRecipient = msg.sender;
     }
 
     /**
@@ -136,8 +140,13 @@ contract SmartWallet is ReentrancyGuard {
         require(recipient != address(0), "Recipient not found");
         require(recipient != msg.sender, "Cannot send to yourself");
         
+        uint256 fee = (feeBps > 0 && feeRecipient != address(0)) ? (amount * feeBps) / 10_000 : 0;
+        uint256 net = amount - fee;
         balances[msg.sender] -= amount;
-        balances[recipient] += amount;
+        balances[recipient] += net;
+        if (fee > 0) {
+            balances[feeRecipient] += fee;
+        }
         
         // Record payment history
         Payment memory payment = Payment({
@@ -174,8 +183,13 @@ contract SmartWallet is ReentrancyGuard {
         require(recipient != address(0), "Recipient not found");
         require(recipient != msg.sender, "Cannot send to yourself");
         
+        uint256 fee = (feeBps > 0 && feeRecipient != address(0)) ? (amount * feeBps) / 10_000 : 0;
+        uint256 net = amount - fee;
         tokenBalances[msg.sender][token] -= amount;
-        tokenBalances[recipient][token] += amount;
+        tokenBalances[recipient][token] += net;
+        if (fee > 0) {
+            tokenBalances[feeRecipient][token] += fee;
+        }
         
         // Record payment history
         Payment memory payment = Payment({
@@ -303,6 +317,38 @@ contract SmartWallet is ReentrancyGuard {
         }
         
         return recent;
+    }
+
+    /**
+     * @dev Get total ETH balance for a list of users (helper for per-user sums)
+     */
+    function getEthBalances(address[] calldata users) external view returns (uint256[] memory) {
+        uint256[] memory out = new uint256[](users.length);
+        for (uint256 i = 0; i < users.length; i++) {
+            out[i] = balances[users[i]];
+        }
+        return out;
+    }
+
+    /**
+     * @dev Get total token balances for a list of users and a given token
+     */
+    function getTokenBalances(address token, address[] calldata users) external view returns (uint256[] memory) {
+        uint256[] memory out = new uint256[](users.length);
+        for (uint256 i = 0; i < users.length; i++) {
+            out[i] = tokenBalances[users[i]][token];
+        }
+        return out;
+    }
+
+    /**
+     * @dev Owner can set fee (in basis points) and fee recipient
+     */
+    function setFee(uint256 _feeBps, address _feeRecipient) external onlyOwner {
+        require(_feeBps <= 1_000, "Fee too high"); // max 10%
+        require(_feeRecipient != address(0), "Invalid recipient");
+        feeBps = _feeBps;
+        feeRecipient = _feeRecipient;
     }
 
     /**

@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Zap
 } from 'lucide-react'
+import { useSendPayment } from '@/hooks/useSmartWallet'
 
 interface SendPaymentModalProps {
   onClose: () => void
@@ -52,6 +53,7 @@ export function SendPaymentModal({ onClose }: SendPaymentModalProps) {
   const [recipientType, setRecipientType] = useState<'phone' | 'username'>('phone')
   const [selectedToken, setSelectedToken] = useState(tokens[0])
   const [estimatedGas, setEstimatedGas] = useState('0.0023')
+  const { sendPayment, loading: sending } = useSendPayment()
 
   const {
     register,
@@ -93,12 +95,9 @@ export function SendPaymentModal({ onClose }: SendPaymentModalProps) {
 
   const confirmSend = async () => {
     setStep('sending')
-    
     try {
-      // Simulate transaction
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      await sendPayment(watchedValues.recipient, watchedValues.amount, selectedToken.symbol)
       setStep('success')
-      toast.success('Payment sent successfully!')
     } catch (error) {
       toast.error('Failed to send payment')
       setStep('form')
@@ -143,6 +142,8 @@ export function SendPaymentModal({ onClose }: SendPaymentModalProps) {
             <button
               onClick={onClose}
               className="p-2 hover:bg-dark-700 rounded-lg transition-colors"
+              aria-label="Close"
+              title="Close"
             >
               <X className="w-5 h-5 text-gray-400" />
             </button>

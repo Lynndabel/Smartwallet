@@ -356,6 +356,35 @@ export const UserRegistryABI = [
       "type": "constructor"
     },
     {
+      "inputs": [
+        { "internalType": "address[]", "name": "users", "type": "address[]" }
+      ],
+      "name": "getEthBalances",
+      "outputs": [ { "internalType": "uint256[]", "name": "", "type": "uint256[]" } ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "address", "name": "token", "type": "address" },
+        { "internalType": "address[]", "name": "users", "type": "address[]" }
+      ],
+      "name": "getTokenBalances",
+      "outputs": [ { "internalType": "uint256[]", "name": "", "type": "uint256[]" } ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "uint256", "name": "_feeBps", "type": "uint256" },
+        { "internalType": "address", "name": "_feeRecipient", "type": "address" }
+      ],
+      "name": "setFee",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "anonymous": false,
       "inputs": [
         {

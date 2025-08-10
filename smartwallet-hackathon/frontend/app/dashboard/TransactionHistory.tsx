@@ -14,91 +14,15 @@ import {
   ChevronDown,
   Smartphone,
   User,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react'
+import { useTransactions } from '@/hooks/useSmartWallet'
 
-interface Transaction {
-  id: string
-  type: 'sent' | 'received'
-  amount: string
-  token: string
-  identifier: string
-  identifierType: 'phone' | 'username'
-  timestamp: Date
-  status: 'completed' | 'pending' | 'failed'
-  txHash: string
-  gasUsed?: string
-  message?: string
-}
-
-// Mock transaction data
-const mockTransactions: Transaction[] = [
-  {
-    id: '1',
-    type: 'received',
-    amount: '0.5',
-    token: 'ETH',
-    identifier: '+1234567890',
-    identifierType: 'phone',
-    timestamp: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
-    status: 'completed',
-    txHash: '0x1234567890abcdef1234567890abcdef12345678',
-    gasUsed: '0.0023',
-    message: 'Thanks for dinner!'
-  },
-  {
-    id: '2',
-    type: 'sent',
-    amount: '0.2',
-    token: 'ETH',
-    identifier: 'alice_crypto',
-    identifierType: 'username',
-    timestamp: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-    status: 'completed',
-    txHash: '0xabcdef1234567890abcdef1234567890abcdef12',
-    gasUsed: '0.0021'
-  },
-  {
-    id: '3',
-    type: 'sent',
-    amount: '100',
-    token: 'USDC',
-    identifier: '+0987654321',
-    identifierType: 'phone',
-    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-    status: 'completed',
-    txHash: '0x567890abcdef1234567890abcdef1234567890ab',
-    gasUsed: '0.0019',
-    message: 'Monthly payment'
-  },
-  {
-    id: '4',
-    type: 'received',
-    amount: '1.0',
-    token: 'ETH',
-    identifier: 'bob_trader',
-    identifierType: 'username',
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-    status: 'completed',
-    txHash: '0x90abcdef1234567890abcdef1234567890abcdef',
-    gasUsed: '0.0025'
-  },
-  {
-    id: '5',
-    type: 'sent',
-    amount: '0.1',
-    token: 'ETH',
-    identifier: '+1122334455',
-    identifierType: 'phone',
-    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    status: 'pending',
-    txHash: '0xcdef1234567890abcdef1234567890abcdef1234',
-    gasUsed: '0.0020'
-  }
-]
+type TxStatus = 'completed' | 'pending' | 'failed'
 
 export function TransactionHistory() {
-  const [transactions] = useState<Transaction[]>(mockTransactions)
+  const { transactions, loading } = useTransactions()
   const [filterType, setFilterType] = useState<'all' | 'sent' | 'received'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -125,7 +49,7 @@ export function TransactionHistory() {
     return `${diffInDays}d ago`
   }
 
-  const getStatusColor = (status: Transaction['status']) => {
+  const getStatusColor = (status: TxStatus) => {
     switch (status) {
       case 'completed': return 'text-accent-400'
       case 'pending': return 'text-yellow-400'
@@ -134,7 +58,7 @@ export function TransactionHistory() {
     }
   }
 
-  const getStatusBg = (status: Transaction['status']) => {
+  const getStatusBg = (status: TxStatus) => {
     switch (status) {
       case 'completed': return 'bg-accent-500/10 border-accent-500/20'
       case 'pending': return 'bg-yellow-500/10 border-yellow-500/20'
@@ -235,7 +159,12 @@ export function TransactionHistory() {
 
       {/* Transaction List */}
       <div className="space-y-3">
-        {filteredTransactions.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 text-primary-400 animate-spin mx-auto mb-3" />
+            <p className="text-gray-400">Loading transactions…</p>
+          </div>
+        ) : filteredTransactions.length === 0 ? (
           <div className="text-center py-12">
             <History className="w-12 h-12 text-gray-600 mx-auto mb-4" />
             <h4 className="text-lg font-medium text-gray-400 mb-2">No transactions found</h4>

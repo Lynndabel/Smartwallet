@@ -162,6 +162,47 @@ export class SmartWalletService {
     }) as bigint
   }
 
+  // Batch helpers (require updated SmartWallet with new getters)
+  async getEthBalancesBatch(walletAddress: Address, users: Address[]): Promise<bigint[] | null> {
+    try {
+      return await publicClient.readContract({
+        address: walletAddress,
+        abi: SmartWalletABI,
+        functionName: 'getEthBalances',
+        args: [users],
+      }) as bigint[]
+    } catch (_e) {
+      return null
+    }
+  }
+
+  async getTokenBalancesBatch(walletAddress: Address, token: Address, users: Address[]): Promise<bigint[] | null> {
+    try {
+      return await publicClient.readContract({
+        address: walletAddress,
+        abi: SmartWalletABI,
+        functionName: 'getTokenBalances',
+        args: [token, users],
+      }) as bigint[]
+    } catch (_e) {
+      return null
+    }
+  }
+
+  async setFee(walletAddress: Address, feeBps: number, recipient: Address, account: Address) {
+    const walletClient = getWalletClient()
+    if (!walletClient) throw new Error('Wallet not connected')
+
+    const { request } = await publicClient.simulateContract({
+      address: walletAddress,
+      abi: SmartWalletABI,
+      functionName: 'setFee',
+      args: [BigInt(feeBps), recipient],
+      account,
+    })
+    return await walletClient.writeContract(request)
+  }
+
   // === PAYMENT PROCESSOR METHODS ===
 
   async getBatchPaymentFee(): Promise<bigint> {

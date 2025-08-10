@@ -2,7 +2,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAccount } from 'wagmi'
 import { Address, formatEther, parseEther } from 'viem'
+import { getEthPriceUsd } from '@/lib/services/prices'
 import { smartWalletService } from '@/lib/contracts/contracts'
+import { getTokenAddress } from '@/lib/contracts/address'
+import { fetchIndexedTransactions } from '@/lib/services/indexer'
 //import { MORPH_TESTNET_CONFIG } from '@/lib/contract/address'
 import toast from 'react-hot-toast'
 
@@ -130,6 +133,7 @@ export function useWalletBalances() {
   const [balances, setBalances] = useState<TokenBalance[]>([])
   const [totalUsdValue, setTotalUsdValue] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [ethSum, setEthSum] = useState<string>('0')
 
   const refreshBalances = useCallback(async () => {
     if (!userAddress || !smartWalletAddress) return
@@ -140,6 +144,7 @@ export function useWalletBalances() {
       // Get ETH balance
       const ethBalance = await smartWalletService.getBalance(smartWalletAddress, userAddress)
       const ethBalanceFormatted = formatEther(ethBalance)
+      setEthSum(ethBalanceFormatted)
       
       // TODO: Add token addresses for your deployment
       // Get USDC balance (example)
@@ -149,8 +154,8 @@ export function useWalletBalances() {
       //   '0x...' // USDC token address
       // )
 
-      // Mock prices for now - integrate with price API later
-      const ethPrice = 2450.0
+      // Fetch live ETH price (with caching/fallback inside)
+      const ethPrice = await getEthPriceUsd()
       
       const newBalances: TokenBalance[] = [
         {
@@ -186,6 +191,7 @@ export function useWalletBalances() {
     totalUsdValue,
     loading,
     refreshBalances,
+    ethSum,
   }
 }
 
@@ -284,16 +290,32 @@ export function useTransactions() {
 
     try {
       setLoading(true)
-      
-      // Get sent and received payments
+      // Try indexed events first for speed
+      const indexed = await fetchIndexedTransactions(userAddress, smartWalletAddress)
+      if (indexed.length > 0) {
+        const mapped: Transaction[] = indexed.map((tx) => ({
+          id: tx.id,
+          type: tx.type,
+          amount: formatEther(tx.amount),
+          token: tx.token === 'ETH' ? 'ETH' : 'TOKEN',
+          identifier: tx.identifier || '',
+          identifierType: (tx.identifier || '').startsWith('+') ? 'phone' : 'username',
+          timestamp: new Date(tx.timestamp || Date.now()),
+          status: 'completed',
+          txHash: tx.txHash,
+          message: ''
+        }))
+        setTransactions(mapped)
+        return
+      }
+
+      // Fallback to contract getters
       const [sentPayments, receivedPayments] = await Promise.all([
         smartWalletService.getSentPayments(smartWalletAddress, userAddress),
         smartWalletService.getReceivedPayments(smartWalletAddress, userAddress)
       ])
 
-      // Transform contract data to Transaction format
       const allTransactions: Transaction[] = [
-        // Process sent payments
         ...(sentPayments as any[]).map((payment, index) => ({
           id: `sent-${index}`,
           type: 'sent' as const,
@@ -303,10 +325,9 @@ export function useTransactions() {
           identifierType: payment.identifier.startsWith('+') ? 'phone' as const : 'username' as const,
           timestamp: new Date(Number(payment.timestamp) * 1000),
           status: 'completed' as const,
-          txHash: `0x${index.toString(16).padStart(64, '0')}`, // Mock hash
+          txHash: `0x${index.toString(16).padStart(64, '0')}`,
           message: ''
         })),
-        // Process received payments
         ...(receivedPayments as any[]).map((payment, index) => ({
           id: `received-${index}`,
           type: 'received' as const,
@@ -316,12 +337,11 @@ export function useTransactions() {
           identifierType: payment.identifier.startsWith('+') ? 'phone' as const : 'username' as const,
           timestamp: new Date(Number(payment.timestamp) * 1000),
           status: 'completed' as const,
-          txHash: `0x${index.toString(16).padStart(64, '0')}`, // Mock hash
+          txHash: `0x${index.toString(16).padStart(64, '0')}`,
           message: ''
         }))
       ]
 
-      // Sort by timestamp
       allTransactions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       setTransactions(allTransactions)
     } catch (err) {
@@ -370,8 +390,20 @@ export function useSendPayment() {
           userAddress
         )
       } else {
-        // TODO: Handle token payments
-        throw new Error('Token payments not implemented yet')
+        // Token can be a known symbol or a direct address
+        let tokenAddress: Address
+        if (/^0x[a-fA-F0-9]{40}$/.test(token)) {
+          tokenAddress = token as Address
+        } else {
+          tokenAddress = getTokenAddress(token as any)
+        }
+        txHash = await smartWalletService.sendTokenPayment(
+          smartWalletAddress,
+          identifier,
+          tokenAddress,
+          amountWei,
+          userAddress
+        )
       }
 
       await smartWalletService.waitForTransaction(txHash)
