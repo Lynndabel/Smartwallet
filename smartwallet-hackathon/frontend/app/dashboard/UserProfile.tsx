@@ -18,7 +18,7 @@ import {
   Loader2
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useUserIdentifiers } from '@/hooks/useSmartWallet'
+import { useUserIdentifiers, useSmartWallet } from '@/hooks/useSmartWallet'
 
 interface UserProfileProps {
   onRegister: () => void
@@ -26,6 +26,7 @@ interface UserProfileProps {
 
 export function UserProfile({ onRegister }: UserProfileProps) {
   const { address } = useAccount()
+  const { smartWalletAddress, hasWallet } = useSmartWallet()
   const { identifiers, loading } = useUserIdentifiers()
   const [showAllIdentifiers, setShowAllIdentifiers] = useState(false)
 
@@ -34,10 +35,9 @@ export function UserProfile({ onRegister }: UserProfileProps) {
     toast.success(`${label} copied to clipboard!`)
   }
 
-  const openExplorer = () => {
-    if (address) {
-      window.open(`https://explorer-holesky.morphl2.io/address/${address}`, '_blank')
-    }
+  const openExplorer = (addr?: string | null) => {
+    const a = addr || address
+    if (a) window.open(`https://explorer-holesky.morphl2.io/address/${a}`, '_blank')
   }
 
   const removeIdentifier = (id: string) => {
@@ -95,26 +95,66 @@ export function UserProfile({ onRegister }: UserProfileProps) {
           </div>
         </div>
 
-        {/* Wallet Address */}
-        <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-600/30">
+        {/* Smart Wallet Address (Primary) */}
+        <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-600/30 mb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-400">Wallet Address</span>
+            <span className="text-sm text-gray-400">Smart Wallet Address</span>
             <div className="flex items-center space-x-2">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => copyToClipboard(address || '', 'Address')}
+                onClick={() => copyToClipboard(smartWalletAddress || '', 'Smart Wallet Address')}
                 className="p-1 hover:bg-dark-600/50 rounded"
+                disabled={!smartWalletAddress}
+                title="Copy smart wallet address"
               >
-                <Copy className="w-4 h-4 text-gray-400 hover:text-white transition-colors" />
+                <Copy className={`w-4 h-4 ${smartWalletAddress ? 'text-gray-400 hover:text-white' : 'text-gray-600' } transition-colors`} />
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={openExplorer}
+                onClick={() => openExplorer(smartWalletAddress)}
                 className="p-1 hover:bg-dark-600/50 rounded"
+                disabled={!smartWalletAddress}
+                title="Open smart wallet in explorer"
               >
-                <ExternalLink className="w-4 h-4 text-gray-400 hover:text-white transition-colors" />
+                <ExternalLink className={`w-4 h-4 ${smartWalletAddress ? 'text-gray-400 hover:text-white' : 'text-gray-600' } transition-colors`} />
+              </motion.button>
+            </div>
+          </div>
+          <code className="text-sm text-white font-mono">
+            {smartWalletAddress 
+              ? `${smartWalletAddress.slice(0, 10)}...${smartWalletAddress.slice(-10)}` 
+              : hasWallet === false 
+                ? 'No smart wallet yet — create one from the dashboard'
+                : 'Loading...'}
+          </code>
+        </div>
+
+        {/* Connected Account (MetaMask) */}
+        <div className="bg-dark-800/50 rounded-lg p-4 border border-dark-600/30">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">Connected Account (MetaMask)</span>
+            <div className="flex items-center space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => copyToClipboard(address || '', 'Connected Address')}
+                className="p-1 hover:bg-dark-600/50 rounded"
+                disabled={!address}
+                title="Copy connected address"
+              >
+                <Copy className={`w-4 h-4 ${address ? 'text-gray-400 hover:text-white' : 'text-gray-600'} transition-colors`} />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => openExplorer(address)}
+                className="p-1 hover:bg-dark-600/50 rounded"
+                disabled={!address}
+                title="Open connected address in explorer"
+              >
+                <ExternalLink className={`w-4 h-4 ${address ? 'text-gray-400 hover:text-white' : 'text-gray-600'} transition-colors`} />
               </motion.button>
             </div>
           </div>

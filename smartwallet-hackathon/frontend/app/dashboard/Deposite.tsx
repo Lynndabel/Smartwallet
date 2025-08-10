@@ -79,7 +79,7 @@ export function DepositModal({ onClose }: DepositModalProps) {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-lg bg-dark-800 border border-dark-600 rounded-2xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-md max-h-[90vh] bg-dark-800 border border-dark-600 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-dark-600">
@@ -103,7 +103,7 @@ export function DepositModal({ onClose }: DepositModalProps) {
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {/* Method Selection */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-white mb-4">Choose Deposit Method</h3>

@@ -225,7 +225,7 @@ export function BatchPaymentModal({ onClose }: BatchPaymentModalProps) {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-2xl bg-dark-800 border border-dark-600 rounded-2xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-md max-h-[90vh] bg-dark-800 border border-dark-600 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         >
           <div className="flex items-center justify-between p-6 border-b border-dark-600">
             <div className="flex items-center space-x-3">
@@ -247,7 +247,7 @@ export function BatchPaymentModal({ onClose }: BatchPaymentModalProps) {
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 flex-1 overflow-y-auto custom-scrollbar">
             <div className="flex items-center space-x-3">
               <label htmlFor="token-select" className="text-sm text-gray-300">Token</label>
               <select

@@ -251,7 +251,7 @@ export function RegisterIdentifierModal({ onClose, onSuccess }: RegisterIdentifi
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-dark-800 border border-dark-600 rounded-2xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-md max-h-[90vh] bg-dark-800 border border-dark-600 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-dark-600">
@@ -275,7 +275,7 @@ export function RegisterIdentifierModal({ onClose, onSuccess }: RegisterIdentifi
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
             {step === 'form' && (
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 {/* Type Selection */}
