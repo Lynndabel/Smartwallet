@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useSendPayment } from '@/hooks/useSmartWallet'
@@ -7,7 +8,8 @@ import { motion } from 'framer-motion'
 import { Smartphone, User, ArrowRight, Check, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
-export default function PayPage() {
+// Separate component that uses useSearchParams
+function PayContent() {
   const params = useSearchParams()
   const prefillId = params.get('id') || params.get('identifier') || ''
   const [identifier, setIdentifier] = useState(prefillId)
@@ -93,4 +95,31 @@ export default function PayPage() {
   )
 }
 
+// Loading component
+function PayLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-dark-800 border border-dark-600 rounded-2xl p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-dark-700 rounded mb-2"></div>
+          <div className="h-4 bg-dark-700 rounded mb-6 w-3/4"></div>
+          <div className="space-y-4">
+            <div className="h-12 bg-dark-700 rounded"></div>
+            <div className="h-12 bg-dark-700 rounded"></div>
+            <div className="h-12 bg-dark-700 rounded"></div>
+            <div className="h-12 bg-dark-700 rounded"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
+// Main component with Suspense wrapper
+export default function PayPage() {
+  return (
+    <Suspense fallback={<PayLoading />}>
+      <PayContent />
+    </Suspense>
+  )
+}
