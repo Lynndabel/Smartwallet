@@ -11,47 +11,33 @@ type Addresses = {
 }
 
 let DYNAMIC_ADDRESSES: Partial<Addresses> | undefined
-// Only attempt to load broadcast files on the server to avoid bundling issues
-if (typeof window === 'undefined') {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    let broadcast
-    try {
-      // Prefer most recent deployment
-      broadcast = require('../../../../contracts/broadcast/Deploy.s.sol/2810/run-latest.json')
-    } catch (_e2) {
-      // Fallback to a pinned run file (older)
-      broadcast = require('../../../../contracts/broadcast/Deploy.s.sol/2810/run-1754611209.json')
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const broadcast = require('../../../../contracts/broadcast/Deploy.s.sol/2810/run-1754611209.json')
+  const txs: Array<{ contractName?: string; contractAddress?: string }> = broadcast?.transactions || []
+  const map = new Map<string, string>()
+  for (const tx of txs) {
+    if (tx.contractName && tx.contractAddress) {
+      map.set(tx.contractName, tx.contractAddress)
     }
-    const txs: Array<{ contractName?: string; contractAddress?: string }> = broadcast?.transactions || []
-    const map = new Map<string, string>()
-    for (const tx of txs) {
-      if (tx.contractName && tx.contractAddress) {
-        map.set(tx.contractName, tx.contractAddress)
-      }
-    }
-    DYNAMIC_ADDRESSES = {
-      USER_REGISTRY: map.get('UserRegistry') as `0x${string}` | undefined,
-      SMART_WALLET: map.get('SmartWallet') as `0x${string}` | undefined,
-      WALLET_FACTORY: map.get('WalletFactory') as `0x${string}` | undefined,
-      SMART_WALLET_IMPLEMENTATION: map.get('SmartWallet') as `0x${string}` | undefined,
-      PAYMENT_PROCESSOR: map.get('PaymentProcessor') as `0x${string}` | undefined,
-    }
-  } catch (_e) {
-    // ignore; fall back to static
   }
+  DYNAMIC_ADDRESSES = {
+    USER_REGISTRY: map.get('UserRegistry') as `0x${string}` | undefined,
+    SMART_WALLET: map.get('SmartWallet') as `0x${string}` | undefined,
+    WALLET_FACTORY: map.get('WalletFactory') as `0x${string}` | undefined,
+    SMART_WALLET_IMPLEMENTATION: map.get('SmartWallet') as `0x${string}` | undefined,
+    PAYMENT_PROCESSOR: map.get('PaymentProcessor') as `0x${string}` | undefined,
+  }
+} catch (_e) {
+  // ignore; fall back to static
 }
 
-// Fallback static addresses (sourced from contracts/deployments/morph-testnet.json); also used on the client
-// If the network resets and these change, update this block.
 const STATIC_ADDRESSES: Addresses = {
-  // Provided from your latest deployment output
-  USER_REGISTRY: (DYNAMIC_ADDRESSES?.USER_REGISTRY || '0x7efe7119b06dfc39571a58bf1d98c13bd450a03d') as `0x${string}`,
-  SMART_WALLET: (DYNAMIC_ADDRESSES?.SMART_WALLET || '0xe2fcd58f285573fdd61a53675b96cdc65be1a893') as `0x${string}`,
-  WALLET_FACTORY: (DYNAMIC_ADDRESSES?.WALLET_FACTORY || '0xf4c5ba414332e0c19be234633f2a6868a4ae6eb3') as `0x${string}`,
-  // If the implementation differs, update this field; using the same as sample for now
-  SMART_WALLET_IMPLEMENTATION: (DYNAMIC_ADDRESSES?.SMART_WALLET_IMPLEMENTATION || '0xe2fcd58f285573fdd61a53675b96cdc65be1a893') as `0x${string}`,
-  PAYMENT_PROCESSOR: (DYNAMIC_ADDRESSES?.PAYMENT_PROCESSOR || '0x1e5f3ad74cce2a20270810ee2e40fb858d81ceb9') as `0x${string}`,
+  USER_REGISTRY: (DYNAMIC_ADDRESSES?.USER_REGISTRY || '0x88bcb19a8984f6877996f6dbbcfba8df01a76b25') as `0x${string}`,
+  SMART_WALLET: (DYNAMIC_ADDRESSES?.SMART_WALLET || '0x990ec214cadf9eba4809c7277414a5e179066ced') as `0x${string}`,
+  WALLET_FACTORY: (DYNAMIC_ADDRESSES?.WALLET_FACTORY || '0x7900f6ddb4363d104147077eba8012e36ebd69e1') as `0x${string}`,
+  SMART_WALLET_IMPLEMENTATION: (DYNAMIC_ADDRESSES?.SMART_WALLET_IMPLEMENTATION || '0x990ec214cadf9eba4809c7277414a5e179066ced') as `0x${string}`,
+  PAYMENT_PROCESSOR: (DYNAMIC_ADDRESSES?.PAYMENT_PROCESSOR || '0x56705c4c5c455a6aa4a0d0ace5c561ac71727e68') as `0x${string}`,
 }
 
 export const CONTRACT_ADDRESSES: Addresses = STATIC_ADDRESSES
@@ -68,12 +54,12 @@ export const CONTRACT_ADDRESSES: Addresses = STATIC_ADDRESSES
     },
     rpcUrls: {
       default: {
-        http: ['https://rpc-holesky.morphl2.io'],
-        webSocket: ['wss://rpc-holesky.morphl2.io'],
+        http: ['https://rpc-quicknode-holesky.morphl2.io'],
+        webSocket: ['wss://rpc-quicknode-holesky.morphl2.io'],
       },
       public: {
-        http: ['https://rpc-holesky.morphl2.io'],
-        webSocket: ['wss://rpc-holesky.morphl2.io'],
+        http: ['https://rpc-quicknode-holesky.morphl2.io'],
+        webSocket: ['wss://rpc-quicknode-holesky.morphl2.io'],
       },
     },
     blockExplorers: {

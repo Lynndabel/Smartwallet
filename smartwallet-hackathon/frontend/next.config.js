@@ -16,7 +16,6 @@ const nextConfig = {
     },
     
     // Performance settings
-    swcMinify: true,
     compress: true,
     poweredByHeader: false,
     trailingSlash: false,

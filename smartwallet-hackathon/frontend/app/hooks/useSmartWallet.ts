@@ -2,10 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAccount } from 'wagmi'
 import { Address, formatEther, parseEther } from 'viem'
-import { getEthPrice } from '@/lib/services/prices'
 import { smartWalletService } from '@/lib/contracts/contracts'
-import { getTokenAddress } from '@/lib/contracts/address'
-import { fetchIndexedTransactions } from '@/lib/services/indexer'
 //import { MORPH_TESTNET_CONFIG } from '@/lib/contract/address'
 import toast from 'react-hot-toast'
 
@@ -19,7 +16,6 @@ export interface TokenBalance {
   changeType: 'positive' | 'negative'
   color: string
   address?: Address
-  priceUsd?: string
 }
 
 export interface Transaction {
@@ -88,13 +84,6 @@ export function useSmartWallet() {
     try {
       setLoading(true)
       let txHash: Address
-      // Re-validate preconditions to avoid on-chain revert
-      const alreadyHas = await smartWalletService.hasWallet(userAddress)
-      if (alreadyHas) {
-        setHasWallet(true)
-        toast.error('You already have a Smart Wallet')
-        return
-      }
 
       if (identifier && identifierType) {
         txHash = await smartWalletService.createWalletWithIdentifier(
@@ -116,20 +105,9 @@ export function useSmartWallet() {
       
       toast.success('Smart wallet created successfully!')
       return walletAddr
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to create wallet:', err)
-      const msg: string = (err?.shortMessage || err?.details || err?.message || 'Failed to create wallet').toString()
-      // Surface common revert reasons
-      if (/Insufficient fee/i.test(msg)) {
-        toast.error('Insufficient deployment fee. Top up your ETH and try again.')
-      } else if (/Wallet exists/i.test(msg)) {
-        toast.error('You already have a Smart Wallet')
-        setHasWallet(true)
-      } else if (/UserRegistered|identifier/i.test(msg)) {
-        toast.error('Identifier is not available. Try a different phone/username.')
-      } else {
-        toast.error(msg)
-      }
+      toast.error('Failed to create wallet')
       throw err
     } finally {
       setLoading(false)
@@ -152,7 +130,6 @@ export function useWalletBalances() {
   const [balances, setBalances] = useState<TokenBalance[]>([])
   const [totalUsdValue, setTotalUsdValue] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [ethSum, setEthSum] = useState<string>('0')
 
   const refreshBalances = useCallback(async () => {
     if (!userAddress || !smartWalletAddress) return
@@ -163,7 +140,6 @@ export function useWalletBalances() {
       // Get ETH balance
       const ethBalance = await smartWalletService.getBalance(smartWalletAddress, userAddress)
       const ethBalanceFormatted = formatEther(ethBalance)
-      setEthSum(ethBalanceFormatted)
       
       // TODO: Add token addresses for your deployment
       // Get USDC balance (example)
@@ -173,8 +149,8 @@ export function useWalletBalances() {
       //   '0x...' // USDC token address
       // )
 
-      // Fetch live ETH price + 24h change
-      const { priceUsd: ethPrice, change24hPct } = await getEthPrice()
+      // Mock prices for now - integrate with price API later
+      const ethPrice = 2450.0
       
       const newBalances: TokenBalance[] = [
         {
@@ -182,10 +158,9 @@ export function useWalletBalances() {
           name: 'Ethereum',
           balance: parseFloat(ethBalanceFormatted).toFixed(4),
           usdValue: (parseFloat(ethBalanceFormatted) * ethPrice).toFixed(2),
-          change: `${change24hPct >= 0 ? '+' : ''}${change24hPct.toFixed(2)}%`,
-          changeType: change24hPct >= 0 ? 'positive' : 'negative',
-          color: 'from-blue-500 to-blue-600',
-          priceUsd: ethPrice.toFixed(2)
+          change: '+12.5%',
+          changeType: 'positive',
+          color: 'from-blue-500 to-blue-600'
         },
         // Add more tokens as needed
       ]
@@ -206,20 +181,11 @@ export function useWalletBalances() {
     refreshBalances()
   }, [refreshBalances])
 
-  // Auto-refresh balances and prices periodically
-  useEffect(() => {
-    const id = setInterval(() => {
-      refreshBalances()
-    }, 60000) // 60s
-    return () => clearInterval(id)
-  }, [refreshBalances])
-
   return {
     balances,
     totalUsdValue,
     loading,
     refreshBalances,
-    ethSum,
   }
 }
 
@@ -259,21 +225,6 @@ export function useUserIdentifiers() {
     loadIdentifiers()
   }, [loadIdentifiers])
 
-  // Listen for cross-component updates (e.g., after modal registers an identifier)
-  useEffect(() => {
-    const handler = () => {
-      loadIdentifiers()
-    }
-    if (typeof window !== 'undefined') {
-      window.addEventListener('identifiers:updated', handler)
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('identifiers:updated', handler)
-      }
-    }
-  }, [loadIdentifiers])
-
   const registerIdentifier = useCallback(async (
     identifier: string, 
     type: 'phone' | 'username'
@@ -282,18 +233,6 @@ export function useUserIdentifiers() {
 
     try {
       setLoading(true)
-      // Client-side guard: prevent more than one per type
-      const existing = await smartWalletService.getIdentifiersByWallet(smartWalletAddress)
-      const hasPhone = existing.some((id) => id.startsWith('+'))
-      const hasUsername = existing.some((id) => !id.startsWith('+'))
-      if (type === 'phone' && hasPhone) {
-        toast.error('You already have a phone number linked')
-        throw new Error('Phone already linked')
-      }
-      if (type === 'username' && hasUsername) {
-        toast.error('You already have a username linked')
-        throw new Error('Username already linked')
-      }
       const txHash = await smartWalletService.registerUser(
         identifier,
         type,
@@ -303,10 +242,6 @@ export function useUserIdentifiers() {
       
       await smartWalletService.waitForTransaction(txHash)
       await loadIdentifiers() // Refresh list
-      // Notify other components to refresh their local identifier lists
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('identifiers:updated'))
-      }
       
       toast.success('Identifier registered successfully!')
       return txHash
@@ -349,32 +284,16 @@ export function useTransactions() {
 
     try {
       setLoading(true)
-      // Try indexed events first for speed
-      const indexed = await fetchIndexedTransactions(userAddress, smartWalletAddress)
-      if (indexed.length > 0) {
-        const mapped: Transaction[] = indexed.map((tx) => ({
-          id: tx.id,
-          type: tx.type,
-          amount: formatEther(tx.amount),
-          token: tx.token === 'ETH' ? 'ETH' : 'TOKEN',
-          identifier: tx.identifier || '',
-          identifierType: (tx.identifier || '').startsWith('+') ? 'phone' : 'username',
-          timestamp: new Date(tx.timestamp || Date.now()),
-          status: 'completed',
-          txHash: tx.txHash,
-          message: ''
-        }))
-        setTransactions(mapped)
-        return
-      }
-
-      // Fallback to contract getters
+      
+      // Get sent and received payments
       const [sentPayments, receivedPayments] = await Promise.all([
         smartWalletService.getSentPayments(smartWalletAddress, userAddress),
         smartWalletService.getReceivedPayments(smartWalletAddress, userAddress)
       ])
 
+      // Transform contract data to Transaction format
       const allTransactions: Transaction[] = [
+        // Process sent payments
         ...(sentPayments as any[]).map((payment, index) => ({
           id: `sent-${index}`,
           type: 'sent' as const,
@@ -384,9 +303,10 @@ export function useTransactions() {
           identifierType: payment.identifier.startsWith('+') ? 'phone' as const : 'username' as const,
           timestamp: new Date(Number(payment.timestamp) * 1000),
           status: 'completed' as const,
-          txHash: `0x${index.toString(16).padStart(64, '0')}`,
+          txHash: `0x${index.toString(16).padStart(64, '0')}`, // Mock hash
           message: ''
         })),
+        // Process received payments
         ...(receivedPayments as any[]).map((payment, index) => ({
           id: `received-${index}`,
           type: 'received' as const,
@@ -396,11 +316,12 @@ export function useTransactions() {
           identifierType: payment.identifier.startsWith('+') ? 'phone' as const : 'username' as const,
           timestamp: new Date(Number(payment.timestamp) * 1000),
           status: 'completed' as const,
-          txHash: `0x${index.toString(16).padStart(64, '0')}`,
+          txHash: `0x${index.toString(16).padStart(64, '0')}`, // Mock hash
           message: ''
         }))
       ]
 
+      // Sort by timestamp
       allTransactions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
       setTransactions(allTransactions)
     } catch (err) {
@@ -449,20 +370,8 @@ export function useSendPayment() {
           userAddress
         )
       } else {
-        // Token can be a known symbol or a direct address
-        let tokenAddress: Address
-        if (/^0x[a-fA-F0-9]{40}$/.test(token)) {
-          tokenAddress = token as Address
-        } else {
-          tokenAddress = getTokenAddress(token as any)
-        }
-        txHash = await smartWalletService.sendTokenPayment(
-          smartWalletAddress,
-          identifier,
-          tokenAddress,
-          amountWei,
-          userAddress
-        )
+        // TODO: Handle token payments
+        throw new Error('Token payments not implemented yet')
       }
 
       await smartWalletService.waitForTransaction(txHash)

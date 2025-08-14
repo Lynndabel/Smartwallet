@@ -36,15 +36,6 @@ export const getWalletClient = () => {
 
 // Contract interaction service
 export class SmartWalletService {
-  private async assertContractDeployed(contractAddress: Address) {
-    const bytecode = await publicClient.getBytecode({ address: contractAddress })
-    if (!bytecode || bytecode === '0x') {
-      throw new Error(
-        `No contract bytecode at ${contractAddress} on chain ${morphTestnetChain.id}. ` +
-          'Verify the address and RPC are for the same network.`'
-      )
-    }
-  }
   
   // === USER REGISTRY METHODS ===
   
@@ -98,10 +89,8 @@ export class SmartWalletService {
   // === WALLET FACTORY METHODS ===
   
   async getDeploymentFee(): Promise<bigint> {
-    const factoryAddress = getContractAddress('WALLET_FACTORY')
-    await this.assertContractDeployed(factoryAddress)
     return await publicClient.readContract({
-      address: factoryAddress,
+      address: getContractAddress('WALLET_FACTORY'),
       abi: WalletFactoryABI,
       functionName: 'deploymentFee',
     }) as bigint
@@ -145,51 +134,21 @@ export class SmartWalletService {
   }
 
   async getUserWallet(userAddress: Address): Promise<Address> {
-    // Pass account to satisfy RPCs that require a `from` on eth_call
-    try {
-      return await publicClient.readContract({
-        address: getContractAddress('WALLET_FACTORY'),
-        abi: WalletFactoryABI,
-        functionName: 'getWallet',
-        args: [userAddress],
-        account: userAddress,
-      }) as Address
-    } catch (_e) {
-      // Retry without account as fallback
-      return await publicClient.readContract({
-        address: getContractAddress('WALLET_FACTORY'),
-        abi: WalletFactoryABI,
-        functionName: 'getWallet',
-        args: [userAddress],
-      }) as Address
-    }
+    return await publicClient.readContract({
+      address: getContractAddress('WALLET_FACTORY'),
+      abi: WalletFactoryABI,
+      functionName: 'getWallet',
+      args: [userAddress],
+    }) as Address
   }
 
   async hasWallet(userAddress: Address): Promise<boolean> {
-    // Some RPCs (e.g., Morph Holesky) may require a `from` on eth_call; provide it and add a robust fallback
-    try {
-      return await publicClient.readContract({
-        address: getContractAddress('WALLET_FACTORY'),
-        abi: WalletFactoryABI,
-        functionName: 'hasWallet',
-        args: [userAddress],
-        account: userAddress,
-      }) as boolean
-    } catch (_primaryError) {
-      try {
-        const wallet = await publicClient.readContract({
-          address: getContractAddress('WALLET_FACTORY'),
-          abi: WalletFactoryABI,
-          functionName: 'getWallet',
-          args: [userAddress],
-          account: userAddress,
-        }) as Address
-        return wallet !== '0x0000000000000000000000000000000000000000'
-      } catch (_fallbackError) {
-        // If both calls fail, assume not created to allow on-chain require to decide
-        return false
-      }
-    }
+    return await publicClient.readContract({
+      address: getContractAddress('WALLET_FACTORY'),
+      abi: WalletFactoryABI,
+      functionName: 'hasWallet',
+      args: [userAddress],
+    }) as boolean
   }
 
   // === SMART WALLET METHODS ===
@@ -201,47 +160,6 @@ export class SmartWalletService {
       functionName: 'getBalance',
       args: [userAddress],
     }) as bigint
-  }
-
-  // Batch helpers (require updated SmartWallet with new getters)
-  async getEthBalancesBatch(walletAddress: Address, users: Address[]): Promise<bigint[] | null> {
-    try {
-      return await publicClient.readContract({
-        address: walletAddress,
-        abi: SmartWalletABI,
-        functionName: 'getEthBalances',
-        args: [users],
-      }) as bigint[]
-    } catch (_e) {
-      return null
-    }
-  }
-
-  async getTokenBalancesBatch(walletAddress: Address, token: Address, users: Address[]): Promise<bigint[] | null> {
-    try {
-      return await publicClient.readContract({
-        address: walletAddress,
-        abi: SmartWalletABI,
-        functionName: 'getTokenBalances',
-        args: [token, users],
-      }) as bigint[]
-    } catch (_e) {
-      return null
-    }
-  }
-
-  async setFee(walletAddress: Address, feeBps: number, recipient: Address, account: Address) {
-    const walletClient = getWalletClient()
-    if (!walletClient) throw new Error('Wallet not connected')
-
-    const { request } = await publicClient.simulateContract({
-      address: walletAddress,
-      abi: SmartWalletABI,
-      functionName: 'setFee',
-      args: [BigInt(feeBps), recipient],
-      account,
-    })
-    return await walletClient.writeContract(request)
   }
 
   // === PAYMENT PROCESSOR METHODS ===

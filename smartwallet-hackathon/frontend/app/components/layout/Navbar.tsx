@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+// Using wagmi connect directly
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Wallet, Zap, BookOpen } from 'lucide-react'
 import { useAccount } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 const navigation = [
   { name: 'Home', href: '/', icon: Zap },
@@ -94,113 +94,8 @@ export function Navbar() {
 
           {/* Connect Button & Mobile Menu */}
           <div className="flex items-center space-x-4">
-            <div className="hidden sm:block">
-              <ConnectButton.Custom>
-                {({
-                  account,
-                  chain,
-                  openAccountModal,
-                  openChainModal,
-                  openConnectModal,
-                  authenticationStatus,
-                  mounted,
-                }) => {
-                  const ready = mounted && authenticationStatus !== 'loading'
-                  const connected =
-                    ready &&
-                    account &&
-                    chain &&
-                    (!authenticationStatus ||
-                      authenticationStatus === 'authenticated')
-
-                  return (
-                    <div
-                      {...(!ready && {
-                        'aria-hidden': true,
-                        'style': {
-                          opacity: 0,
-                          pointerEvents: 'none',
-                          userSelect: 'none',
-                        },
-                      })}
-                    >
-                      {(() => {
-                        if (!connected) {
-                          return (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={openConnectModal}
-                              className="px-6 py-2 bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-500 hover:to-secondary-500 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-primary-500/25"
-                            >
-                              Connect Wallet
-                            </motion.button>
-                          )
-                        }
-
-                        if (chain.unsupported) {
-                          return (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={openChainModal}
-                              className="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-medium rounded-lg transition-all duration-200"
-                            >
-                              Wrong network
-                            </motion.button>
-                          )
-                        }
-
-                        return (
-                          <div className="flex items-center space-x-3">
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={openChainModal}
-                              className="flex items-center space-x-2 px-3 py-2 bg-dark-800 hover:bg-dark-700 border border-dark-600 rounded-lg transition-all duration-200"
-                            >
-                              {chain.hasIcon && (
-                                <div
-                                  style={{
-                                    background: chain.iconBackground,
-                                    width: 16,
-                                    height: 16,
-                                    borderRadius: 999,
-                                    overflow: 'hidden',
-                                    marginRight: 4,
-                                  }}
-                                >
-                                  {chain.iconUrl && (
-                                    <Image
-                                      alt={chain.name ?? 'Chain icon'}
-                                      src={chain.iconUrl}
-                                      width={16}
-                                      height={16}
-                                    />
-                                  )}
-                                </div>
-                              )}
-                              <span className="text-sm">{chain.name}</span>
-                            </motion.button>
-
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={openAccountModal}
-                              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-primary-600/20 to-secondary-600/20 border border-primary-500/20 hover:border-primary-400/40 rounded-lg transition-all duration-200"
-                            >
-                              <div className="w-2 h-2 bg-accent-500 rounded-full animate-pulse" />
-                              <span className="text-sm font-medium">
-                                {account.displayName}
-                              </span>
-                            </motion.button>
-                          </div>
-                        )
-                      })()}
-                    </div>
-                  )
-                }}
-              </ConnectButton.Custom>
+            <div className="hidden sm:flex items-center space-x-2">
+              <ConnectButton accountStatus="avatar" chainStatus="icon" showBalance={false} />
             </div>
 
             {/* Mobile menu button */}
@@ -251,7 +146,7 @@ export function Navbar() {
               
               <div className="pt-4 border-t border-dark-700">
                 <div className="sm:hidden">
-                  <ConnectButton />
+                  <div className="flex items-center space-x-2" />
                 </div>
               </div>
             </div>
